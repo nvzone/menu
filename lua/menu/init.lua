@@ -9,15 +9,14 @@ local utils = require("menu.utils")
 
 ---@class MenuItem
 ---@field name string
----@field cmd? string|fun():nil
+---@field cmd? string|fun():any
 ---@field items? MenuItem[]|fun():MenuItem[]
 ---@field rtxt? string
+---@field hl? string
 
 ---@class MenuOpenOpts
 ---@field mouse? boolean
 ---@field nested? boolean
----@field item_gap? integer
----@field border? boolean
 
 ---@param items string|MenuItem[]|fun():MenuItem[]
 ---@param opts MenuOpenOpts
@@ -65,7 +64,7 @@ M.open = function(items, opts)
 	local config = state.config
 
 	local buf = vim.api.nvim_create_buf(false, true)
-	state.bufs[buf] = { items = items, item_gap = opts.item_gap or 5 }
+	state.bufs[buf] = { items = items, item_gap = M.config.item_gap or 5 }
 	table.insert(state.bufids, buf)
 
 	local h = #items
@@ -105,7 +104,7 @@ M.open = function(items, opts)
 		{ buf = buf, ns = ns, layout = layout },
 	})
 
-	if config.border then
+	if M.config.border then
 		vim.wo[win].winhl = "Normal:Normal,FloatBorder:LineNr"
 	else
 		vim.wo[win].winhl = "Normal:ExBlack2Bg,FloatBorder:ExBlack2Border"
@@ -149,12 +148,16 @@ M.delete_old_menus = utils.delete_old_menus
 ---@field ft? {string: string|MenuItem|fun():MenuItem}
 ---@field default_menu? string|MenuItem
 ---@field default_mappings? boolean
+---@field border? boolean
+---@field item_gap? integer
 
 ---@type MenuConfig
 M.config = {
 	ft = {},
 	default_menu = "default",
 	default_mappings = false,
+	border = false,
+	item_gap = 5,
 }
 
 ---@param args MenuConfig

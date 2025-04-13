@@ -9,17 +9,17 @@ local utils = require("menu.utils")
 
 ---@class MenuItem
 ---@field name string
----@field cmd string|fun():nil?
----@field items MenuItem[]?
----@field rtxt string
+---@field cmd? string|fun():nil
+---@field items? MenuItem[]|fun():MenuItem[]
+---@field rtxt? string
 
 ---@class MenuOpenOpts
----@field mouse boolean?
----@field nested boolean?
----@field item_gap integer?
----@field border boolean?
+---@field mouse? boolean
+---@field nested? boolean
+---@field item_gap? integer
+---@field border? boolean
 
----@param items MenuItem[]
+---@param items string|MenuItem[]|fun():MenuItem[]
 ---@param opts MenuOpenOpts
 M.open = function(items, opts)
 	opts = opts or {}
@@ -34,7 +34,9 @@ M.open = function(items, opts)
 		}
 	end
 
+	items = type(items) == "function" and items() or items
 	items = type(items) == "table" and items or require("menus." .. items)
+	items = type(items) == "function" and items() or items
 
 	if not state.config then
 		state.config = opts
@@ -124,9 +126,9 @@ end
 M.delete_old_menus = utils.delete_old_menus
 
 ---@class MenuConfig
----@field ft {string: string|MenuItem}
----@field default_menu string|MenuItem
----@field default_mappings boolean
+---@field ft? {string: string|MenuItem|fun():MenuItem}
+---@field default_menu? string|MenuItem
+---@field default_mappings? boolean
 
 ---@type MenuConfig
 M.config = {
@@ -167,7 +169,7 @@ M.handler = function(opts)
 	end
 	local buf = vim.api.nvim_win_get_buf(vim.fn.getmousepos().winid)
 	local items = M.config.ft[vim.bo[buf]] or M.config.default_menu
-	require("menu").open(items, opts)
+	M.open(items, opts)
 end
 
 return M

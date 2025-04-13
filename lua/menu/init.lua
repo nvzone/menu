@@ -1,110 +1,173 @@
 local M = {}
-local api = vim.api
-local state = require "menu.state"
-local layout = require "menu.layout"
-local ns = api.nvim_create_namespace "NvMenu"
-local volt = require "volt"
-local volt_events = require "volt.events"
-local mappings = require "menu.mappings"
+local state = require("menu.state")
+local layout = require("menu.layout")
+local ns = vim.api.nvim_create_namespace("NvMenu")
+local volt = require("volt")
+local volt_events = require("volt.events")
+local mappings = require("menu.mappings")
+local utils = require("menu.utils")
 
+---@class MenuItem
+---@field name string
+---@field cmd string|fun():nil?
+---@field items MenuItem[]?
+---@field rtxt string
+
+---@class MenuOpenOpts
+---@field mouse boolean?
+---@field nested boolean?
+---@field item_gap integer?
+---@field border boolean?
+
+---@param items MenuItem[]
+---@param opts MenuOpenOpts
 M.open = function(items, opts)
-  opts = opts or {}
+	opts = opts or {}
 
-  local cur_buf = api.nvim_get_current_buf()
+	local cur_buf = vim.api.nvim_get_current_buf()
 
-  if vim.bo[cur_buf].ft ~= "NvMenu" then
-    state.old_data = {
-      buf = api.nvim_get_current_buf(),
-      win = api.nvim_get_current_win(),
-      cursor = api.nvim_win_get_cursor(0),
-    }
-  end
+	if vim.bo[cur_buf].ft ~= "NvMenu" then
+		state.old_data = {
+			buf = vim.api.nvim_get_current_buf(),
+			win = vim.api.nvim_get_current_win(),
+			cursor = vim.api.nvim_win_get_cursor(0),
+		}
+	end
 
-  items = type(items) == "table" and items or require("menus." .. items)
+	items = type(items) == "table" and items or require("menus." .. items)
 
-  if not state.config then
-    state.config = opts
-  end
+	if not state.config then
+		state.config = opts
+	end
 
-  local config = state.config
+	local config = state.config
 
-  local buf = api.nvim_create_buf(false, true)
-  state.bufs[buf] = { items = items, item_gap = opts.item_gap or 5 }
-  table.insert(state.bufids, buf)
+	local buf = vim.api.nvim_create_buf(false, true)
+	state.bufs[buf] = { items = items, item_gap = opts.item_gap or 5 }
+	table.insert(state.bufids, buf)
 
-  local h = #items
-  local bufv = state.bufs[buf]
-  bufv.w = require("menu.utils").get_width(items)
-  bufv.w = bufv.w + bufv.item_gap
+	local h = #items
+	local bufv = state.bufs[buf]
+	bufv.w = utils.get_width(items)
+	bufv.w = bufv.w + bufv.item_gap
 
-  local win_opts = {
-    relative = config.mouse and "mouse" or "cursor",
-    width = bufv.w,
-    height = h,
-    row = 1,
-    col = 0,
-    border = "single",
-    style = "minimal",
-    zindex = 99 + #state.bufids,
-  }
+	local win_opts = {
+		relative = config.mouse and "mouse" or "cursor",
+		width = bufv.w,
+		height = h,
+		row = 1,
+		col = 0,
+		border = "single",
+		style = "minimal",
+		zindex = 99 + #state.bufids,
+	}
 
-  if opts.nested then
-    win_opts.relative = "win"
+	if opts.nested then
+		win_opts.relative = "win"
 
-    if config.mouse then
-      local pos = vim.fn.getmousepos()
-      win_opts.win = pos.winid
-      win_opts.col = api.nvim_win_get_width(pos.winid) + 2
-      win_opts.row = pos.winrow - 2
-    else
-      win_opts.win = api.nvim_get_current_win()
-      win_opts.col = api.nvim_win_get_width(win_opts.win) + 2
-      win_opts.row = api.nvim_win_get_cursor(win_opts.win)[1] - 1
-    end
-  end
+		if config.mouse then
+			local pos = vim.fn.getmousepos()
+			win_opts.win = pos.winid
+			win_opts.col = vim.api.nvim_win_get_width(pos.winid) + 2
+			win_opts.row = pos.winrow - 2
+		else
+			win_opts.win = vim.api.nvim_get_current_win()
+			win_opts.col = vim.api.nvim_win_get_width(win_opts.win) + 2
+			win_opts.row = vim.api.nvim_win_get_cursor(win_opts.win)[1] - 1
+		end
+	end
 
-  local win = api.nvim_open_win(buf, not config.mouse, win_opts)
+	local win = vim.api.nvim_open_win(buf, not config.mouse, win_opts)
 
-  volt.gen_data {
-    { buf = buf, ns = ns, layout = layout },
-  }
+	volt.gen_data({
+		{ buf = buf, ns = ns, layout = layout },
+	})
 
-  if config.border then
-    vim.wo[win].winhl = "Normal:Normal,FloatBorder:LineNr"
-  else
-    vim.wo[win].winhl = "Normal:ExBlack2Bg,FloatBorder:ExBlack2Border"
-  end
+	if config.border then
+		vim.wo[win].winhl = "Normal:Normal,FloatBorder:LineNr"
+	else
+		vim.wo[win].winhl = "Normal:ExBlack2Bg,FloatBorder:ExBlack2Border"
+	end
 
-  volt.run(buf, { h = h, w = bufv.w })
-  vim.bo[buf].filetype = "NvMenu"
+	volt.run(buf, { h = h, w = bufv.w })
+	vim.bo[buf].filetype = "NvMenu"
 
-  volt_events.add(buf)
+	volt_events.add(buf)
 
-  local close_post = function()
-    state.bufs = {}
-    state.config = nil
+	local close_post = function()
+		state.bufs = {}
+		state.config = nil
 
-    if api.nvim_win_is_valid(state.old_data.win) then
-      api.nvim_set_current_win(state.old_data.win)
-      vim.schedule(function()
-        local cursor_line = math.max(1,state.old_data.cursor[1])
-        local cursor_col = math.max(0, state.old_data.cursor[2])
+		if vim.api.nvim_win_is_valid(state.old_data.win) then
+			vim.api.nvim_set_current_win(state.old_data.win)
+			vim.schedule(function()
+				local cursor_line = math.max(1, state.old_data.cursor[1])
+				local cursor_col = math.max(0, state.old_data.cursor[2])
 
-        api.nvim_win_set_cursor(state.old_data.win, { cursor_line, cursor_col })
-      end)
-    end
+				vim.api.nvim_win_set_cursor(state.old_data.win, { cursor_line, cursor_col })
+			end)
+		end
 
-    state.bufids = {}
-  end
+		state.bufids = {}
+	end
 
-  volt.mappings { bufs = vim.tbl_keys(state.bufs), after_close = close_post }
+	volt.mappings({ bufs = vim.tbl_keys(state.bufs), after_close = close_post })
 
-  if not config.mouse then
-    mappings.nav_win()
-    mappings.actions(items, buf)
-  else
-    mappings.auto_close()
-  end
+	if not config.mouse then
+		mappings.nav_win()
+		mappings.actions(items, buf)
+	else
+		mappings.auto_close()
+	end
+end
+
+M.delete_old_menus = utils.delete_old_menus
+
+---@class MenuConfig
+---@field ft {string: string|MenuItem}
+---@field default_menu string|MenuItem
+---@field default_mappings boolean
+
+---@type MenuConfig
+M.config = {
+	ft = {
+		NvimTree = "nvimtree",
+		["neo-tree"] = "neo-tree",
+	},
+	default_menu = "default",
+	default_mappings = false,
+}
+
+---@param args MenuConfig
+M.setup = function(args)
+	M.config = vim.tbl_deep_extend("force", M.config, args or {})
+	if M.config.default_mappings then
+		vim.keymap.set("n", "<C-t>", function()
+			M.handler({ mouse = false })
+		end)
+		vim.keymap.set({ "n", "v" }, "<RightMouse>", function()
+			M.handler({ mouse = true })
+		end)
+	end
+end
+
+---@param opts MenuOpenOpts
+M.handler = function(opts)
+	opts = opts or {}
+	if opts.mouse then
+		-- On second mouse click remove current manu and reopen it.
+		require("menu.utils").delete_old_menus()
+		vim.cmd.exec('"normal! \\<RightMouse>"')
+	else
+		if #require("menu.state").bufids > 0 then
+			-- if a menu is already open, close it.
+			require("menu.utils").delete_old_menus()
+			return
+		end
+	end
+	local buf = vim.api.nvim_win_get_buf(vim.fn.getmousepos().winid)
+	local items = M.config.ft[vim.bo[buf]] or M.config.default_menu
+	require("menu").open(items, opts)
 end
 
 return M

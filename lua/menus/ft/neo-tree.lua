@@ -22,7 +22,9 @@ end
 local function copy_path(how)
   return function()
     local node = get_state().tree:get_node()
-    if node.type == "message" then return end
+    if node.type == "message" then
+      return
+    end
     vim.fn.setreg('"', vim.fn.fnamemodify(node.path, how))
     vim.fn.setreg("+", vim.fn.fnamemodify(node.path, how))
   end
@@ -32,7 +34,9 @@ end
 local function open_in_terminal()
   return function()
     local node = get_state().tree:get_node()
-    if node.type == "message" then return end
+    if node.type == "message" then
+      return
+    end
     local path = node.path
     local node_type = vim.uv.fs_stat(path).type
     local dir = node_type == "directory" and path or vim.fn.fnamemodify(path, ":h")

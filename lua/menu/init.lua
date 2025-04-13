@@ -132,10 +132,7 @@ M.delete_old_menus = utils.delete_old_menus
 
 ---@type MenuConfig
 M.config = {
-	ft = {
-		NvimTree = "nvimtree",
-		["neo-tree"] = "neo-tree",
-	},
+	ft = {},
 	default_menu = "default",
 	default_mappings = false,
 }
@@ -156,10 +153,12 @@ end
 ---@param opts MenuOpenOpts
 M.handler = function(opts)
 	opts = opts or {}
+	local window = 0
 	if opts.mouse then
 		-- On second mouse click remove current manu and reopen it.
 		require("menu.utils").delete_old_menus()
 		vim.cmd.exec('"normal! \\<RightMouse>"')
+		window = vim.api.nvim_win_get_buf(vim.fn.getmousepos().winid)
 	else
 		if #require("menu.state").bufids > 0 then
 			-- if a menu is already open, close it.
@@ -167,8 +166,19 @@ M.handler = function(opts)
 			return
 		end
 	end
-	local buf = vim.api.nvim_win_get_buf(vim.fn.getmousepos().winid)
-	local items = M.config.ft[vim.bo[buf]] or M.config.default_menu
+	local ft = vim.bo[vim.api.nvim_win_get_buf(window)].ft
+	-- First try user filetype overwrites.
+	local items = M.config.ft[ft]
+	if not items then
+		-- Then try filetype specific menus.
+		local ok, mod = pcall(require, "menus.ft." .. ft)
+		if ok then
+			items = mod
+		else
+			-- Fallback to defaults.
+			items = M.config.default_menu or "default"
+		end
+	end
 	M.open(items, opts)
 end
 

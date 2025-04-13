@@ -181,7 +181,7 @@ M.handler = function(opts)
     -- On second mouse click remove current manu and reopen it.
     require("menu.utils").delete_old_menus()
     vim.cmd.exec '"normal! \\<RightMouse>"'
-    window = vim.api.nvim_win_get_buf(vim.fn.getmousepos().winid)
+    window = vim.fn.getmousepos().winid
   else
     if #require("menu.state").bufids > 0 then
       -- if a menu is already open, close it.

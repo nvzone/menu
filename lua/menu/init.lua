@@ -34,9 +34,29 @@ M.open = function(items, opts)
 		}
 	end
 
-	items = type(items) == "function" and items() or items
-	items = type(items) == "table" and items or require("menus." .. items)
-	items = type(items) == "function" and items() or items
+	local items_was = type(items)
+	if type(items) == "function" then
+		items = items()
+	end
+	if type(items) == "string" then
+		items = require("menus." .. items)
+		if type(items) == "function" then
+			items = items()
+		end
+	end
+	assert(
+		type(items) == "table",
+		"Items has to be a table."
+			.. " items_was="
+			.. items_was
+			.. " type(items)="
+			.. type(items)
+			.. " vim.inspect(items)="
+			.. vim.inspect(items)
+			.. " vim.inspect(opts)="
+			.. vim.inspect(opts)
+			.. ". Most probably provided menus configuration is invalid."
+	)
 
 	if not state.config then
 		state.config = opts

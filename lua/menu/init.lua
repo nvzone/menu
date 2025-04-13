@@ -89,11 +89,11 @@ M.open = function(items, opts)
     if config.mouse then
       local pos = vim.fn.getmousepos()
       win_opts.win = pos.winid
-      win_opts.col = vim.api.nvim_win_get_width(pos.winid) + 2
+      win_opts.col = vim.api.nvim_win_get_width(pos.winid) + M.config.nested_col
       win_opts.row = pos.winrow - 2
     else
       win_opts.win = vim.api.nvim_get_current_win()
-      win_opts.col = vim.api.nvim_win_get_width(win_opts.win) + 2
+      win_opts.col = vim.api.nvim_win_get_width(win_opts.win) + M.config.nested_col
       win_opts.row = vim.api.nvim_win_get_cursor(win_opts.win)[1] - 1
     end
   end
@@ -150,14 +150,16 @@ M.delete_old_menus = utils.delete_old_menus
 ---@field default_mappings? boolean
 ---@field border? boolean
 ---@field item_gap? integer
+---@field nested_col? integer
 
----@type MenuConfig
+---@class MenuConfig
 M.config = {
   ft = {},
   default_menu = "default",
   default_mappings = false,
   border = false,
   item_gap = 5,
+  nested_col = 2,
 }
 
 ---@param args MenuConfig

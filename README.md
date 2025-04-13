@@ -38,13 +38,13 @@ Default settings:
     -- Overwrite filetype menu in handler(). If not provided, require("menus.ft." .. filetype) is tried to load the menu.
     ft = {},
     -- The default menu to open in handler(), if filetype specific menu is not found.
-	  default_menu = "default",
-	  -- Should we install default mappings? Default mappings presented below.
-	  default_mappings = false,
-	  -- Should the menu have a border?
-	  border = false,
-	  item_gap = 5,
-	},
+    default_menu = "default",
+    -- Should we install default mappings? Default mappings presented below.
+    default_mappings = false,
+    -- Should the menu have a border?
+    border = false,
+    item_gap = 5,
+  },
 ```
 
 ## Usage
@@ -104,9 +104,9 @@ Same settings in lazy.nvim specification:
 
 ```lua
   keys = {
-	  { mode = "n", "<C-t>", function() require("menu").handler({ mouse = false }) end },
-	  { mode = "n", "<RightMouse>", function() require("menu").handler({ mouse = true }) end },
-	  { mode = "v", "<RightMouse>", function() require("menu").handler({ mouse = true }) end },
+    { mode = "n", "<C-t>", function() require("menu").handler({ mouse = false }) end },
+    { mode = "n", "<RightMouse>", function() require("menu").handler({ mouse = true }) end },
+    { mode = "v", "<RightMouse>", function() require("menu").handler({ mouse = true }) end },
   },
 ```
 

@@ -1,4 +1,16 @@
-return {
+local function insertafter(arr, after, elem)
+  local idx = 1
+  for i, v in ipairs(arr) do
+    if v.name:find(after) then
+      idx = i
+      break
+    end
+  end
+  table.insert(arr, idx, elem)
+end
+
+---@type MenuItem[]
+local items = {
 
   {
     name = "Format Buffer",
@@ -25,7 +37,9 @@ return {
   {
     name = "  Lsp Actions",
     hl = "Exblue",
-    items = "lsp",
+    items = function()
+      return require "menus.lsp"
+    end,
   },
 
   { name = "separator" },
@@ -83,3 +97,16 @@ return {
     end,
   },
 }
+
+local ok = require "which-key"
+if ok then
+  insertafter(items, "Lsp Actions", {
+    name = "  Which-key",
+    hl = "Exblue",
+    items = function()
+      return require "menus.which-key"
+    end,
+  })
+end
+
+return items

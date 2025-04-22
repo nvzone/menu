@@ -67,7 +67,7 @@ M.open = function(items, opts)
   state.bufs[buf] = { items = items, item_gap = M.config.item_gap or 5 }
   table.insert(state.bufids, buf)
 
-  local h = #items
+  local h = #items or 1
   local bufv = state.bufs[buf]
   bufv.w = utils.get_width(items)
   bufv.w = bufv.w + bufv.item_gap

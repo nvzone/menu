@@ -33,7 +33,7 @@ M.open = function(items, opts)
     }
   end
 
-  local items_was = type(items)
+  local items_was = items
   if type(items) == "function" then
     items = items()
   end
@@ -46,8 +46,10 @@ M.open = function(items, opts)
   assert(
     type(items) == "table",
     "Items has to be a table."
-      .. " items_was="
-      .. items_was
+      .. " type(items_was)="
+      .. type(items_was)
+      .. " debug.getinfo(items_was)="
+      .. vim.inspect(type(items_was) == "function" and debug.getinfo(items_was))
       .. " type(items)="
       .. type(items)
       .. " vim.inspect(items)="

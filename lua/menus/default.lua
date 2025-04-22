@@ -101,10 +101,18 @@ local items = {
 local ok = require "which-key"
 if ok then
   insertafter(items, "Lsp Actions", {
-    name = "  Which-key",
+    name = "  Which-key from leader",
     hl = "Exblue",
     items = function()
-      return require "menus.which-key"
+      local subitems = require "menus.which-key"(vim.g.mapleader)[1].items
+      return type(subitems) == "function" and subitems() or subitems
+    end,
+  })
+  insertafter(items, "Lsp Actions", {
+    name = "  Which-key all keys",
+    hl = "Exblue",
+    items = function()
+      return require "menus.which-key"()
     end,
   })
 end

@@ -8,7 +8,7 @@ end
 local walk
 
 ---@param node wk.Node
----@param prefix string
+---@param prefix string?
 ---@return MenuItem[]?
 local node_to_item = function(node, prefix)
   -- Create the name.
@@ -18,7 +18,10 @@ local node_to_item = function(node, prefix)
     -- If item has children, descend to them.
     return {
       name = name .. " " .. node.path[#node.path],
-      items = walk(node, prefix),
+      items = function()
+        return walk(node, prefix) or {}
+      end,
+      hl = "Exblue",
       rtxt = node.path[#node.path],
     }
   else
@@ -34,7 +37,7 @@ local node_to_item = function(node, prefix)
 end
 
 ---@param node wk.Node
----@param prefix string
+---@param prefix string?
 ---@return MenuItem[]?
 walk = function(node, prefix)
   ---@type MenuItem[]
@@ -43,7 +46,7 @@ walk = function(node, prefix)
   if children then
     items = {}
     for _, child in pairs(children) do
-      if child and child.keys and string_startswith(child.keys, prefix) then
+      if child and child.keys and (not prefix or prefix == "" or string_startswith(child.keys, prefix)) then
         table.insert(items, node_to_item(child, prefix))
       end
     end
@@ -54,9 +57,13 @@ walk = function(node, prefix)
   return items
 end
 
-local root = require("which-key.buf").get({ mode = "n" }).tree.root
--- print(vim.inspect(root))
-local prefix = vim.g.mapleader:gsub(" ", "<Space>")
-local menu = walk(root, prefix)
--- print(vim.inspect(menu))
-return menu and next(menu) and menu[1].items or nil
+---@param prefix string?
+---@param mode string?
+return function(prefix, mode)
+  local root = require("which-key.buf").get({ mode = mode or "n" }).tree.root
+  -- print(vim.inspect(root))
+  prefix = prefix and vim.g.mapleader:gsub(prefix, "<Space>")
+  local items = walk(root, prefix)
+  -- print(vim.inspect(menu))
+  return items and next(items) and items or nil
+end

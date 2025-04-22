@@ -9,7 +9,7 @@ local walk
 
 ---@param node wk.Node
 ---@param prefix string
----@return MenuItem[]
+---@return MenuItem[]?
 local node_to_item = function(node, prefix)
   -- Create the name.
   local name = node.mapping and node.mapping.desc or node.keymap and (node.keymap.desc or node.keymap.rhs) or node.keys
@@ -22,10 +22,13 @@ local node_to_item = function(node, prefix)
       rtxt = node.path[#node.path],
     }
   else
-    -- If keymap is a callback, we can just straight call it, which is more reliable and easier.
-    -- If key is <Space>, it has to start with 1 for normal! command to pick it up properly.
-    local cmd = node.keymap and node.keymap.callback or "normal! " .. node.keys:gsub("<Space>", " "):gsub("^ ", "1 ")
     -- If item has no children, execute a normal command as part of it.
+    local feed = vim.api.nvim_replace_termcodes(node.keys, true, true, true)
+    local cmd = node.action
+      or node.keymap and node.keymap.callback
+      or function()
+        vim.api.nvim_feedkeys(feed, "mit", false)
+      end
     return { name = name, cmd = cmd, rtxt = node.path[#node.path] }
   end
 end
@@ -40,7 +43,7 @@ walk = function(node, prefix)
   if children then
     items = {}
     for _, child in pairs(children) do
-      if string_startswith(child.keys, prefix) then
+      if child and child.keys and string_startswith(child.keys, prefix) then
         table.insert(items, node_to_item(child, prefix))
       end
     end

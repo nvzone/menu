@@ -1,26 +1,63 @@
 local M = {}
-local api = vim.api
 local state = require "menu.state"
 local layout = require "menu.layout"
-local ns = api.nvim_create_namespace "NvMenu"
+local ns = vim.api.nvim_create_namespace "NvMenu"
 local volt = require "volt"
 local volt_events = require "volt.events"
 local mappings = require "menu.mappings"
+local utils = require "menu.utils"
 
+---@class MenuItem
+---@field name string
+---@field cmd? string|fun():any
+---@field items? MenuItem[]|fun():MenuItem[]
+---@field rtxt? string
+---@field hl? string
+
+---@class MenuOpenOpts
+---@field mouse? boolean
+---@field nested? boolean
+
+---@param items string|MenuItem[]|fun():MenuItem[]
+---@param opts MenuOpenOpts
 M.open = function(items, opts)
   opts = opts or {}
 
-  local cur_buf = api.nvim_get_current_buf()
+  local cur_buf = vim.api.nvim_get_current_buf()
 
   if vim.bo[cur_buf].ft ~= "NvMenu" then
     state.old_data = {
-      buf = api.nvim_get_current_buf(),
-      win = api.nvim_get_current_win(),
-      cursor = api.nvim_win_get_cursor(0),
+      buf = vim.api.nvim_get_current_buf(),
+      win = vim.api.nvim_get_current_win(),
+      cursor = vim.api.nvim_win_get_cursor(0),
     }
   end
 
-  items = type(items) == "table" and items or require("menus." .. items)
+  local items_was = items
+  if type(items) == "function" then
+    items = items()
+  end
+  if type(items) == "string" then
+    items = require("menus." .. items)
+    if type(items) == "function" then
+      items = items()
+    end
+  end
+  assert(
+    type(items) == "table",
+    "Items has to be a table."
+      .. " type(items_was)="
+      .. type(items_was)
+      .. " debug.getinfo(items_was)="
+      .. vim.inspect(type(items_was) == "function" and debug.getinfo(items_was))
+      .. " type(items)="
+      .. type(items)
+      .. " vim.inspect(items)="
+      .. vim.inspect(items)
+      .. " vim.inspect(opts)="
+      .. vim.inspect(opts)
+      .. ". Most probably provided menus configuration is invalid."
+  )
 
   if not state.config then
     state.config = opts
@@ -28,13 +65,13 @@ M.open = function(items, opts)
 
   local config = state.config
 
-  local buf = api.nvim_create_buf(false, true)
-  state.bufs[buf] = { items = items, item_gap = opts.item_gap or 5 }
+  local buf = vim.api.nvim_create_buf(false, true)
+  state.bufs[buf] = { items = items, item_gap = M.config.item_gap or 5 }
   table.insert(state.bufids, buf)
 
-  local h = #items
+  local h = #items or 1
   local bufv = state.bufs[buf]
-  bufv.w = require("menu.utils").get_width(items)
+  bufv.w = utils.get_width(items)
   bufv.w = bufv.w + bufv.item_gap
 
   local win_opts = {
@@ -54,22 +91,22 @@ M.open = function(items, opts)
     if config.mouse then
       local pos = vim.fn.getmousepos()
       win_opts.win = pos.winid
-      win_opts.col = api.nvim_win_get_width(pos.winid) + 2
+      win_opts.col = vim.api.nvim_win_get_width(pos.winid) + M.config.nested_col
       win_opts.row = pos.winrow - 2
     else
-      win_opts.win = api.nvim_get_current_win()
-      win_opts.col = api.nvim_win_get_width(win_opts.win) + 2
-      win_opts.row = api.nvim_win_get_cursor(win_opts.win)[1] - 1
+      win_opts.win = vim.api.nvim_get_current_win()
+      win_opts.col = vim.api.nvim_win_get_width(win_opts.win) + M.config.nested_col
+      win_opts.row = vim.api.nvim_win_get_cursor(win_opts.win)[1] - 1
     end
   end
 
-  local win = api.nvim_open_win(buf, not config.mouse, win_opts)
+  local win = vim.api.nvim_open_win(buf, not config.mouse, win_opts)
 
   volt.gen_data {
     { buf = buf, ns = ns, layout = layout },
   }
 
-  if config.border then
+  if M.config.border then
     vim.wo[win].winhl = "Normal:Normal,FloatBorder:LineNr"
   else
     vim.wo[win].winhl = "Normal:ExBlack2Bg,FloatBorder:ExBlack2Border"
@@ -84,13 +121,13 @@ M.open = function(items, opts)
     state.bufs = {}
     state.config = nil
 
-    if api.nvim_win_is_valid(state.old_data.win) then
-      api.nvim_set_current_win(state.old_data.win)
+    if vim.api.nvim_win_is_valid(state.old_data.win) then
+      vim.api.nvim_set_current_win(state.old_data.win)
       vim.schedule(function()
-        local cursor_line = math.max(1,state.old_data.cursor[1])
+        local cursor_line = math.max(1, state.old_data.cursor[1])
         local cursor_col = math.max(0, state.old_data.cursor[2])
 
-        api.nvim_win_set_cursor(state.old_data.win, { cursor_line, cursor_col })
+        vim.api.nvim_win_set_cursor(state.old_data.win, { cursor_line, cursor_col })
       end)
     end
 
@@ -105,6 +142,71 @@ M.open = function(items, opts)
   else
     mappings.auto_close()
   end
+end
+
+M.delete_old_menus = utils.delete_old_menus
+
+---@class MenuConfig
+---@field ft? {string: string|MenuItem|fun():MenuItem}
+---@field default_menu? string|MenuItem
+---@field default_mappings? boolean
+---@field border? boolean
+---@field item_gap? integer
+---@field nested_col? integer
+
+---@class MenuConfig
+M.config = {
+  ft = {},
+  default_menu = "default",
+  default_mappings = false,
+  border = false,
+  item_gap = 5,
+  nested_col = 2,
+}
+
+---@param args MenuConfig
+M.setup = function(args)
+  M.config = vim.tbl_deep_extend("force", M.config, args or {})
+  if M.config.default_mappings then
+    vim.keymap.set("n", "<C-t>", function()
+      M.handler { mouse = false }
+    end)
+    vim.keymap.set({ "n", "v" }, "<RightMouse>", function()
+      M.handler { mouse = true }
+    end)
+  end
+end
+
+---@param opts MenuOpenOpts
+M.handler = function(opts)
+  opts = opts or {}
+  local window = 0
+  if opts.mouse then
+    -- On second mouse click remove current manu and reopen it.
+    require("menu.utils").delete_old_menus()
+    vim.cmd.exec '"normal! \\<RightMouse>"'
+    window = vim.fn.getmousepos().winid
+  else
+    if #require("menu.state").bufids > 0 then
+      -- if a menu is already open, close it.
+      require("menu.utils").delete_old_menus()
+      return
+    end
+  end
+  local ft = vim.bo[vim.api.nvim_win_get_buf(window)].ft
+  -- First try user filetype overwrites.
+  local items = M.config.ft[ft]
+  if not items then
+    -- Then try filetype specific menus.
+    local ok, mod = pcall(require, "menus.ft." .. ft)
+    if ok then
+      items = mod
+    else
+      -- Fallback to defaults.
+      items = M.config.default_menu or "default"
+    end
+  end
+  M.open(items, opts)
 end
 
 return M

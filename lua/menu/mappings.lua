@@ -6,11 +6,17 @@ local M = {}
 
 M.actions = function(items, buf)
   local tb = vim.tbl_filter(function(v)
-    return not v.rtxt_type and v.rtxt and v.cmd
+    return not v.rtxt_type and v.rtxt and (v.cmd or v.items)
   end, items)
 
   for _, v in ipairs(tb) do
     local action = function()
+      if v.items then
+        vim.api.nvim_win_set_cursor(0, {vim.fn.index(items, v) + 1, 0})
+        utils.toggle_nested_menu(v.items, true)
+        return
+      end
+
       require("volt").close()
 
       if type(v.cmd) == "string" then

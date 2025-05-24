@@ -27,27 +27,6 @@ local format_title = function(buf, name, rtxt, hl, actions, title)
   return line
 end
 
-local function toggle_nested_menu(items)
-  local right_bufs = utils.adjacent_bufs()
-
-  if #right_bufs > 0 then
-    require("volt.utils").close {
-      bufs = right_bufs,
-      close_func = function(buf)
-        state.bufs[buf] = nil
-
-        for i, val in ipairs(state.bufids) do
-          if val == buf then
-            table.remove(state.bufids, i)
-          end
-        end
-      end,
-    }
-  else
-    require("menu").open(items, { nested = true })
-  end
-end
-
 return function(buf)
   local lines = {}
   local bufv = state.bufs[buf]
@@ -59,15 +38,11 @@ return function(buf)
 
     local nested_menu = item.items
 
-    if nested_menu then
-      item.rtxt = ""
-    end
-
     local actions = {
       hover = { id = hover_id, redraw = "items" },
       click = function()
         if nested_menu then
-          toggle_nested_menu(nested_menu)
+          utils.toggle_nested_menu(nested_menu)
           return
         end
 
@@ -87,7 +62,7 @@ return function(buf)
       end,
     }
 
-    local mark = format_title(buf, " " .. item.name, (item.rtxt or "") .. " ", hl, actions, item.title)
+    local mark = format_title(buf, " " .. item.name, utils.hotkey_label(item) .. " ", hl, actions, item.title)
     table.insert(lines, mark)
   end
 

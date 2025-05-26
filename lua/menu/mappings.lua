@@ -2,16 +2,6 @@ local utils = require "menu.utils"
 local map = vim.keymap.set
 local state = require "menu.state"
 
-local function item_index(tb, v)
-  tb = type(tb) == "string" and require("menus." .. tb) or tb
-
-  for index, value in ipairs(tb) do
-    if value.name == v.name then
-      return index
-    end
-  end
-end
-
 local M = {}
 
 M.actions = function(items, buf)
@@ -39,11 +29,11 @@ M.actions = function(items, buf)
 
   for _, v in ipairs(nested_menus) do
     local action = function()
-      vim.api.nvim_win_set_cursor(0, { item_index(items, v), 0 })
+      vim.api.nvim_win_set_cursor(0, { vim.fn.index(items, v) + 1, 0 })
       utils.toggle_nested_menu(v.items)
     end
 
-    local keybind = v.keybind or tostring(item_index(nested_menus, v))
+    local keybind = v.keybind or tostring(vim.fn.index(nested_menus, v) + 1)
     map("n", keybind, action, { buffer = buf })
   end
 end

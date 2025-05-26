@@ -64,4 +64,25 @@ M.delete_old_menus = function()
   end
 end
 
+M.toggle_nested_menu = function(items)
+  local right_bufs = M.adjacent_bufs()
+
+  if #right_bufs > 0 then
+    require("volt.utils").close {
+      bufs = right_bufs,
+      close_func = function(buf)
+        state.bufs[buf] = nil
+
+        for i, val in ipairs(state.bufids) do
+          if val == buf then
+            table.remove(state.bufids, i)
+          end
+        end
+      end,
+    }
+  else
+    require("menu").open(items, { nested = true })
+  end
+end
+
 return M

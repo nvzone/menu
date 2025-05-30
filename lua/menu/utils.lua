@@ -64,7 +64,7 @@ M.delete_old_menus = function()
   end
 end
 
-M.toggle_nested_menu = function(items)
+M.toggle_nested_menu = function(name, items)
   local right_bufs = M.adjacent_bufs()
 
   if #right_bufs > 0 then
@@ -80,9 +80,15 @@ M.toggle_nested_menu = function(items)
         end
       end,
     }
+
+    if name ~= state.nested_menu then
+      require("menu").open(items, { nested = true })
+    end
   else
     require("menu").open(items, { nested = true })
   end
+
+  state.nested_menu = name == state.nested_menu and "" or name
 end
 
 return M

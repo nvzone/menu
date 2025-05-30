@@ -30,7 +30,7 @@ M.actions = function(items, buf)
   for _, v in ipairs(nested_menus) do
     local action = function()
       vim.api.nvim_win_set_cursor(0, { vim.fn.index(items, v) + 1, 0 })
-      utils.toggle_nested_menu(v.items)
+      utils.toggle_nested_menu(v.name, v.items)
     end
 
     local keybind = v.keybind or tostring(vim.fn.index(nested_menus, v) + 1)

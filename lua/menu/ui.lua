@@ -46,7 +46,7 @@ return function(buf)
       hover = { id = hover_id, redraw = "items" },
       click = function()
         if nested_menu then
-          utils.toggle_nested_menu(nested_menu)
+          utils.toggle_nested_menu(item.name, nested_menu)
           return
         end
 

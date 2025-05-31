@@ -83,6 +83,7 @@ M.open = function(items, opts)
   local close_post = function()
     state.bufs = {}
     state.config = nil
+    state.nested_menu = ""
 
     if api.nvim_win_is_valid(state.old_data.win) then
       api.nvim_set_current_win(state.old_data.win)

@@ -3,26 +3,11 @@ local api = vim.api
 local fn = vim.fn
 local state = require "menu.state"
 
-M.nested_symbol = ""
-
-M.hotkey_label = function(item)
-  local nested_menu = item.items
-  if not nested_menu then
-    return item.rtxt or ""
-  end
-
-  if not item.rtxt then
-    return M.nested_symbol
-  end
-
-  return item.rtxt .. " " .. M.nested_symbol
-end
-
 M.get_width = function(tb)
   local w = 0
 
   for _, value in ipairs(tb) do
-    local label = (value.name or "") .. M.hotkey_label(value)
+    local label = (value.name or "") .. (value.rtxt or "")
     local strlen = fn.strwidth(label)
 
     if strlen > w then
@@ -79,7 +64,7 @@ M.delete_old_menus = function()
   end
 end
 
-M.toggle_nested_menu = function(items, force)
+M.toggle_nested_menu = function(name, items)
   local right_bufs = M.adjacent_bufs()
 
   if #right_bufs > 0 then
@@ -95,14 +80,15 @@ M.toggle_nested_menu = function(items, force)
         end
       end,
     }
-  else
-    force = true
-  end
 
-  if force then
+    if name ~= state.nested_menu then
+      require("menu").open(items, { nested = true })
+    end
+  else
     require("menu").open(items, { nested = true })
   end
-end
 
+  state.nested_menu = name == state.nested_menu and "" or name
+end
 
 return M

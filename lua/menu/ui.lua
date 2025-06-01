@@ -38,11 +38,15 @@ return function(buf)
 
     local nested_menu = item.items
 
+    if nested_menu then
+      item.rtxt = (item.keybind or "") .. " "
+    end
+
     local actions = {
       hover = { id = hover_id, redraw = "items" },
       click = function()
         if nested_menu then
-          utils.toggle_nested_menu(nested_menu)
+          utils.toggle_nested_menu(item.name, nested_menu)
           return
         end
 
@@ -62,7 +66,7 @@ return function(buf)
       end,
     }
 
-    local mark = format_title(buf, " " .. item.name, utils.hotkey_label(item) .. " ", hl, actions, item.title)
+    local mark = format_title(buf, " " .. item.name, (item.rtxt or "") .. " ", hl, actions, item.title)
     table.insert(lines, mark)
   end
 
